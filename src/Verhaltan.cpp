@@ -3,9 +3,4 @@
 #include "Fahrzeug.h"
 
 Verhalten::Verhalten(Weg& weg) : p_pWeg(weg) {
-
-
 }
-
-
-

@@ -23,74 +23,70 @@ Weg::~Weg(){
 
 }
 
-void Weg::vSimulieren(){
+void Weg::vSimulieren()
+{
+    // Simülasyon öncesi listeyi güncelle
+    p_pFahrzeuge.vAktualisieren();
 
-	p_pFahrzeuge.vAktualisieren(); //Aktualisiere die Liste der Fahrzeuge vor der Simulation
+    auto it = p_pFahrzeuge.begin();
+    while (it != p_pFahrzeuge.end())
+    {
+        try {
+            // 1. Aracı Simüle Et
+            (*it)->vSimulieren();
 
-	for(auto it = p_pFahrzeuge.begin(); it != p_pFahrzeuge.end(); ++it){
-		try {
-			// *it bize unique_ptr verir.
-			// (*it)->vSimulieren() diyerek aracın fonksiyonunu çağırıyoruz.
-			(*it)->vSimulieren();
+            // 2. Aracı Çiz
+            (*it)->vZeichnen(*this);
+        }
+        catch (Streckenende& e) {
+            // --- DURUM A: YOLUN SONU ---
+            auto pZiel = getZielKreuzung();
 
-			//Zeichnen des Fahrzeugs auf dem Weg
-			(*it)->vZeichnen(*this);
+            if (pZiel) {
+                // Yeni yolu seç
+                auto pNeuerWeg = pZiel->pZufaelligerWeg(*this);
 
-		}
+                // Bilgilendirme
+                std::cout << "----------------------------------------" << std::endl;
+                std::cout << "ZEIT      : " << dGlobaleZeit << std::endl;
+                std::cout << "KREUZUNG  : " << pZiel->getName() << " " << pZiel->getTankstelle() << std::endl;
+                std::cout << "WECHSEL   : " << this->getName() << " -> " << pNeuerWeg->getName() << std::endl;
+                std::cout << "FAHRZEUG  : " << (*it)->getName() << std::endl;
 
-		// 2. Hata Yakalama: Eğer araba "throw" yaparsa buraya düşer
-		catch (Streckenende& e) {
-			auto pZiel = getZielKreuzung();
+                // İşlemler
+                pZiel->vTanken(*(*it));
+                pNeuerWeg->vAnnahme(std::move(*it));
 
-		if(pZiel){
-			// --- DURUM A: KAVŞAK VAR (YOLCULUK DEVAM EDİYOR) ---
+                // SİLME (Atama YOK!)
+                // Ertelenmiş liste olduğu için anında silinmez, iterator bozulmaz.
+                p_pFahrzeuge.erase(it);
+            }
+            else {
+                // Kavşak yoksa
+                e.vBearbeiten();
+                p_pFahrzeuge.erase(it); // Atama YOK!
+            }
+        }
+        catch (Losfahren& e) {
+            // --- DURUM B: HAREKETE GEÇİŞ ---
+            e.vBearbeiten();
+            vAnnahme(std::move(*it));
+            p_pFahrzeuge.erase(it); // Atama YOK!
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Hata: " << e.what() << std::endl;
+        }
 
-			// Yeni yolu seç
-			auto pNeuerWeg = pZiel->pZufaelligerWeg(*this);
+        // --- KRİTİK DÜZELTME ---
+        // ++it işlemini BURAYA aldık.
+        // Try içinde hata olsa da olmasa da, silme olsa da olmasa da
+        // bir sonraki araca geçmemiz lazım.
+        // Ertelenmiş listede silinen eleman hemen yok olmadığı için ++it güvenlidir.
+        ++it;
+    }
 
-			// PDF'teki tabloyu yazdır (e.vBearbeiten YOK!)
-			std::cout << "ZEIT      : " << dGlobaleZeit << std::endl;
-		    std::cout << "KREUZUNG  : " << pZiel->getName() << " " << pZiel->getTankstelle() << std::endl;
-	        std::cout << "WECHSEL   : " << this->getName() << " -> " << pNeuerWeg->getName() << std::endl;
-	        std::cout << "FAHRZEUG  : " << (*it)->getName() << std::endl;
-
-	        //Benzin al
-	        pZiel->vTanken(*(*it));
-			// Aracı yeni yola al
-	        pNeuerWeg->vAnnahme(std::move(*it));
-
-		    // Bizim listeden sil (artık kavşağın sorumluluğunda)
-			p_pFahrzeuge.erase(it);
-		}
-		else{
-			e.vBearbeiten();
-			// 3. Hata İşleme: Hatanın "vBearbeiten" metodunu çağır
-			p_pFahrzeuge.erase(it); //Fahrzeug vom Weg entfernen
-		}
-		}
-		catch (Losfahren& e){
-		            // SENARYO 1: Araç park halindeydi, harekete geçti.
-		            // PDF der ki: Harekete geçen araç listede yeniden konumlandırılmalı.
-
-					e.vBearbeiten();
-		            // 1. Aracı listeden "Çalıyoruz" (Move ile sahipliği alıp tekrar yola ekle)
-		            // vAnnahme fonksiyonu "push_back" yapar, yani aracı en sona (hareketliler arasına) atar.
-		            vAnnahme(std::move(*it));
-
-		            // 2. Eski boş kalan kabuğu listeden silme emri veriyoruz.
-		            p_pFahrzeuge.erase(it);
-
-		            // Bilgi mesajı (İstersen)
-		            // std::cout << "Parktan Cikti: " << (*it)->getName() << std::endl;
-		 }
-		catch(const std::exception& e){
-			//Diğer tüm standart istisnalar için genel hata işleme
-			std::cout << "Fehler bei der Simulation von Fahrzeug: " << e.what() << std::endl;
-		}
-	}
-	p_pFahrzeuge.vAktualisieren(); //Aktualisiere die Liste der Fahrzeuge nach der Simulation
-
-
+    // Simülasyon sonrası listeyi güncelle (Gerçek silme burada yapılır)
+    p_pFahrzeuge.vAktualisieren();
 }
 
 void Weg::vAusgeben(std::ostream& o) const{

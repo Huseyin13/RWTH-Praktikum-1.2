@@ -11,17 +11,4 @@ public:
 		Fahren(Weg& weg);
 	double dStrecke(Fahrzeug& fzg, double dZeitIntervall) const override;
 
-
-protected:
-
-
-
-
-
-private:
-
-
-
-
-
 };

@@ -756,6 +756,7 @@ void vAufgabe_7(){
 	    }
 
 	    // Grafik penceresini beklet (kapanmaması için)
+	    vSleep(2000);
 	    vBeendeGrafik();
 
 

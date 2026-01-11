@@ -28,7 +28,7 @@ double Fahren::dStrecke(Fahrzeug& fzg, double dZeitIntervall) const {
 	double dVerbleibendeStrecke = p_pWeg.getLaenge() - fzg.getAbschnittStrecke();
 
 
-	if(std::abs(dVerbleibendeStrecke) < 1e-6) return 0.0; //Wenn die verbleibende Strecke sehr klein ist, gib 0 zurück
+	//if(std::abs(dVerbleibendeStrecke) < 1e-6) return 0.0; //Wenn die verbleibende Strecke sehr klein ist, gib 0 zurück
 
 	//Wenn die mögliche Strecke größer ist als die verbleibende Strecke, gib die verbleibende Strecke zurück
 	if(dMoeglicheStrecke > dVerbleibendeStrecke){
